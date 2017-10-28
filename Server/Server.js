@@ -1,9 +1,10 @@
-var express      = require('express');
-var bodyParser   = require('body-parser');
+var express        = require('express');
+var bodyParser     = require('body-parser');
+const { ObjectID } = require('mongodb');
 
-var { mongoose } = require('./DB/Mongoose');
-var { Todo }     = require('./Models/Todo');
-var { User }     = require('./Models/User');
+var { mongoose }   = require('./DB/Mongoose');
+var { Todo }       = require('./Models/Todo');
+var { User }       = require('./Models/User');
 
 
 var app = express();
@@ -40,6 +41,35 @@ app.get('/todos', (req, resp) => {
   Todo.find().then((todos) => {
     resp.send( { todos });
   }, (err) => {
+    resp.status(400).send(err);
+  });
+});
+
+
+//
+// GET /todos/:id
+// Retrieve a single TODO
+//
+app.get('/todos/:id', (req, resp) => {
+
+  // Is this a valid ID?
+  var id = req.params.id;
+  if (!ObjectID.isValid(id)) {
+    return resp.status(404).send({ reason: 'Invalid ID' });
+  }
+
+  // Make the db request and respond
+  Todo.findById(id).then((todo) => {
+    if (todo) {
+      // Todo doc was found
+      resp.send({ todo });
+    }
+    else {
+      // Todo doc was NOT found
+      resp.status(404).send({ reason: 'ID not found.' });
+    }
+  }).catch((err) => {
+    // Badness, brah
     resp.status(400).send(err);
   });
 });
