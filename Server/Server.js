@@ -76,6 +76,35 @@ app.get('/todos/:id', (req, resp) => {
 });
 
 
+//
+// DELETE /todos/:id
+// Remove a single TODO
+//
+app.delete('/todos/:id', (req, resp) => {
+
+  // Is this a valid ID?
+  var id = req.params.id;
+  if (!ObjectID.isValid(id)) {
+    return resp.status(404).send({ reason: 'Invalid ID' });
+  }
+
+  // Make the db request and respond
+  Todo.findByIdAndRemove(id).then((todo) => {
+    if (todo) {
+      // Todo doc was found
+      resp.send({ todo });
+    }
+    else {
+      // Todo doc was NOT found
+      resp.status(404).send({ reason: 'ID not found.' });
+    }
+  }).catch((err) => {
+    // Badness, brah
+    resp.status(400).send(err);
+  });
+});
+
+
 app.listen(port, () => {
     console.log(`Started on port ${port}...`);
 });
