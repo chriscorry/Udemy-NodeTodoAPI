@@ -1,5 +1,6 @@
-var express        = require('express');
-var bodyParser     = require('body-parser');
+const _            = require('lodash');
+const express      = require('express');
+const bodyParser   = require('body-parser');
 const { ObjectID } = require('mongodb');
 
 var { mongoose }   = require('./DB/Mongoose');
@@ -90,6 +91,47 @@ app.delete('/todos/:id', (req, resp) => {
 
   // Make the db request and respond
   Todo.findByIdAndRemove(id).then((todo) => {
+    if (todo) {
+      // Todo doc was found
+      resp.send({ todo });
+    }
+    else {
+      // Todo doc was NOT found
+      resp.status(404).send({ reason: 'ID not found.' });
+    }
+  }).catch((err) => {
+    // Badness, brah
+    resp.status(400).send(err);
+  });
+});
+
+
+//
+// PATCH /todos/:id
+// Update a single TODO
+//
+app.patch('/todos/:id', (req, resp) => {
+
+  // Is this a valid ID?
+  var id = req.params.id;
+  if (!ObjectID.isValid(id)) {
+    return resp.status(404).send({ reason: 'Invalid ID' });
+  }
+
+  // Bring over new fields, but ONLY those that are editable
+  var body = _.pick(req.body, ['text', 'completed']);
+
+  // Set our completed time, if appropriate
+  if (_.isBoolean(body.completed) && body.completed) {
+    body.completedAt = new Date().getTime();
+  }
+  else {
+    body.completed = false;
+    body.completedAt = null;
+  }
+
+  // Make the db request and respond
+  Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then((todo) => {
     if (todo) {
       // Todo doc was found
       resp.send({ todo });
