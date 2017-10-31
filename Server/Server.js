@@ -1,3 +1,5 @@
+const { envName }  = require('./Config/Config');
+
 const _            = require('lodash');
 const express      = require('express');
 const bodyParser   = require('body-parser');
@@ -12,6 +14,12 @@ var app = express();
 var port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
+//
+// Server coming up
+//
+console.log(`Starting server in environment "${envName}"...`);
+
 
 //
 // POST /todos
