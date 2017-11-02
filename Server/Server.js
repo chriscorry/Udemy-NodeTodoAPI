@@ -155,6 +155,28 @@ app.patch('/todos/:id', (req, resp) => {
 });
 
 
+//
+// POST /users
+// Add a new USER
+//
+app.post('/users', (req, resp) => {
+
+  // Create the new USER and then generate an authorization token
+  var user = new User(_.pick(req.body, ['email', 'password']));
+
+  // ... save to the database and generate an authorization token...
+  user.save().then(() => {
+    return user.generateAuthToken();
+  }).then((token) => {
+
+    // ... and then respond with the auth tokenin the header
+    resp.header('x-auth', token).send(user);
+  }, (err) => {
+    resp.status(400).send(err);
+  });
+});
+
+
 app.listen(port, () => {
     console.log(`Started on port ${port}...`);
 });
