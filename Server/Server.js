@@ -1,19 +1,21 @@
-const { envName }  = require('./Config/Config');
+const { envName }    = require('./Config/Config');
 
-const _            = require('lodash');
-const express      = require('express');
-const bodyParser   = require('body-parser');
-const { ObjectID } = require('mongodb');
+const _              = require('lodash');
+const express        = require('express');
+const bodyParser     = require('body-parser');
+const { ObjectID }   = require('mongodb');
 
-var { mongoose }   = require('./DB/Mongoose');
-var { Todo }       = require('./Models/Todo');
-var { User }       = require('./Models/User');
+var { mongoose }     = require('./DB/Mongoose');
+var { Todo }         = require('./Models/Todo');
+var { User }         = require('./Models/User');
+var { authenticate } = require('./Middleware/Authenticate');
 
 
 var app = express();
 var port = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
+
 
 //
 // Server coming up
@@ -152,6 +154,15 @@ app.patch('/todos/:id', (req, resp) => {
     // Badness, brah
     resp.status(400).send(err);
   });
+});
+
+
+//
+// GET /users/me
+// Retrieve info about current logged in user
+//
+app.get('/users/me', authenticate, (req, resp) => {
+  return resp.send(req.user);
 });
 
 
