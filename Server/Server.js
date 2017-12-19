@@ -180,6 +180,20 @@ app.post('/users/login', (req, resp) => {
 
 
 //
+// DELETE /users/me/token
+// Logout the currently logged-in user
+//
+app.delete('/users/me/token', authenticate, (req, resp) => {
+
+  req.user.removeToken(req.token).then(() => {
+    resp.status(200).send();
+  }, (err) => {
+    resp.status(400).send(err);
+  });
+});
+
+
+//
 // GET /users/me
 // Retrieve info about current logged in user
 //
