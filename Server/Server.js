@@ -158,6 +158,28 @@ app.patch('/todos/:id', (req, resp) => {
 
 
 //
+// POST /users/login
+// Login an existing user
+//
+app.post('/users/login', (req, resp) => {
+
+  // Create the new user to validate
+  var body = _.pick(req.body, ['email', 'password']);
+
+  // Find the user
+  User.findByCredentials(body.email, body.password).then((user) => {
+    return user.generateAuthToken().then((token) => {
+
+      // ... and then respond with the auth token in the header
+      resp.header('x-auth', token).send(user);
+    });
+  }).catch((err) => {
+    resp.status(400).send(err);
+  });
+});
+
+
+//
 // GET /users/me
 // Retrieve info about current logged in user
 //
