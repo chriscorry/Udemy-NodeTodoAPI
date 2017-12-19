@@ -245,6 +245,71 @@ describe('PATCH /todos/:id', () => {
 
 
 //
+// POST /users/login
+// Login an existing user
+//
+describe('POST /users/login', () => {
+
+  it('should login an existing user', (done) => {
+
+    var email = users[0].email;
+    var password = users[0].password;
+    var id = users[0]._id;
+
+    request(app)
+      .post('/users/login')
+      .send( {email, password} )
+      .expect(200)
+      .expect((resp) => {
+        expect(resp.headers['x-auth']).toExist();
+        expect(resp.body._id).toExist();
+        expect(resp.body.email).toBe(email);
+      })
+      .end((err, resp) => {
+        if (err) {
+          return done(err);
+        }
+
+        // Verify that the in the database has the same token
+        User.findById(id).then((user) => {
+          expect(user).toExist();
+          expect(user.tokens[1]).toInclude({
+            access: 'auth',
+            token: resp.headers['x-auth']
+          });
+          done();
+        }).catch((err) => done(err));
+      });
+  });
+
+  it('should return error if user does not exist', (done) => {
+
+    var email = 'not an email';
+    var password = users[0].password;
+
+    request(app)
+      .post(`/users/login`)
+      .send( {email, password} )
+      .expect(400)
+      .end(done);
+  });
+
+  it('should return error if incorrect password is specified', (done) => {
+
+    var email = users[0].email;
+    var password = 'notadoctor';
+
+    request(app)
+      .post(`/users/login`)
+      .send( {email, password} )
+      .expect(400)
+      .end(done);
+  });
+
+});
+
+
+//
 // GET /users/me
 // Retrieve info about current logged in user
 //
@@ -319,7 +384,7 @@ describe('POST /users', () => {
 
   it('should return validation errors if request invalid', (done) => {
 
-    var email = 'not a password';
+    var email = 'not an email';
     var password = 'notadoctor';
 
     request(app)
