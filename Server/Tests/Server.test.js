@@ -4,30 +4,19 @@ const { ObjectID } = require('mongodb');
 
 const { app }      = require('../Server');
 const { Todo }     = require('../Models/Todo');
-
-const todos = [ {
-    _id:  new ObjectID(),
-    text: 'Kill a hobo.',
-  }, {
-    _id:  new ObjectID(),
-    text: 'Second test todo.',
-    completed: true,
-    completedAt: 123
-  }, {
-    text: 'Third test todo.',
-  }, {
-    text: 'Wait, wut?!?',
-  }, {
-    text: 'I\'m just here for the cheese.',
-  }];
+const { User }     = require('../Models/User');
+const { todos, populateTodos, users, populateUsers }
+                   = require('./Seed/Seed');
 
 
-beforeEach((done) => {
-    Todo.remove({}).then(() => {
-      return Todo.insertMany(todos);
-  }).then(() => done());
-});
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
+
+//
+// POST /todos
+// Add a new TODO
+//
 describe('POST /todos', () => {
 
   it('should not create a new todo with invalid body data', (done) => {
@@ -74,6 +63,10 @@ describe('POST /todos', () => {
 });
 
 
+//
+// GET /todos
+// Retrieve all TODOs
+//
 describe('GET /todos', () => {
 
   it('should get all todos', (done) => {
@@ -90,6 +83,10 @@ describe('GET /todos', () => {
 });
 
 
+//
+// GET /todos/:id
+// Retrieve a single TODO
+//
 describe('GET /todos/:id', () => {
 
   it('should return todo doc', (done) => {
@@ -122,6 +119,58 @@ describe('GET /todos/:id', () => {
 });
 
 
+//
+// DELETE /todos/:id
+// Remove a single TODO
+//
+describe('DELETE /todos/:id', () => {
+
+  it('should remove a todo', (done) => {
+
+    var hexId = todos[0]._id.toHexString();
+
+    request(app)
+      .delete(`/todos/${hexId}`)
+      .expect(200)
+      .expect((resp) => {
+        expect(resp.body.todo.text).toBe('Kill a hobo.');
+      })
+      .end((err, resp) => {
+        if (err) {
+          return done(err);
+        }
+
+        // Verify that the document was not found
+        Todo.findById(hexId).then((todo) => {
+          expect(todo).toNotExist();
+          done();
+        }).catch((err) => done(err));
+      });
+  });
+
+  it('should return 404 if Todo not found', (done) => {
+
+    request(app)
+      .delete(`/todos/${new ObjectID().toHexString()}`)
+      .expect(404)
+      .end(done);
+  });
+
+  it('should return 404 for non-object IDs', (done) => {
+
+    request(app)
+      .delete(`/todos/123`)
+      .expect(404)
+      .end(done);
+  });
+
+});
+
+
+//
+// PATCH /todos/:id
+// Update a single TODO
+//
 describe('PATCH /todos/:id', () => {
 
   it('should update a todo', (done) => {
@@ -195,44 +244,100 @@ describe('PATCH /todos/:id', () => {
 });
 
 
-describe('DELETE /todos/:id', () => {
+//
+// GET /users/me
+// Retrieve info about current logged in user
+//
+describe('GET /users/me', () => {
 
-  it('should remove a todo', (done) => {
-
-    var hexId = todos[0]._id.toHexString();
+  it('should return a user if authenticated', (done) => {
 
     request(app)
-      .delete(`/todos/${hexId}`)
+      .get(`/users/me`)
+      .set('x-auth', users[0].tokens[0].token)
       .expect(200)
       .expect((resp) => {
-        expect(resp.body.todo.text).toBe('Kill a hobo.');
+        expect(resp.body._id).toBe(users[0]._id.toHexString());
+        expect(resp.body.email).toBe(users[0].email);
       })
-      .end((err, resp) => {
+      .end(done);
+  });
+
+  it('should return 401 if not authenticated', (done) => {
+
+    request(app)
+      .get(`/users/me`)
+      .expect(401)
+      .end(done);
+  });
+
+  it('should return 401 if bad authentication token', (done) => {
+
+    request(app)
+      .get(`/users/me`)
+      .set('x-auth', 'notadoctor')
+      .expect(401)
+      .end(done);
+  });
+
+});
+
+
+//
+// POST /users
+// Add a new USER
+//
+describe('POST /users', () => {
+
+  it('should create a user', (done) => {
+
+    var email = 'example@example.com';
+    var password = 'notadoctor';
+
+    request(app)
+      .post('/users')
+      .send( {email, password} )
+      .expect(200)
+      .expect((resp) => {
+        expect(resp.headers['x-auth']).toExist();
+        expect(resp.body._id).toExist();
+        expect(resp.body.email).toBe(email);
+      })
+      .end((err) => {
         if (err) {
           return done(err);
         }
 
-        // Verify that the document was not found
-        Todo.findById(hexId).then((todo) => {
-          expect(todo).toNotExist();
+        // Verify that the user was placed into the database
+        User.findOne({email}).then((user) => {
+          expect(user).toExist();
+          expect(user.password).toNotBe(password);
           done();
         }).catch((err) => done(err));
       });
   });
 
-  it('should return 404 if Todo not found', (done) => {
+  it('should return validation errors if request invalid', (done) => {
+
+    var email = 'not a password';
+    var password = 'notadoctor';
 
     request(app)
-      .delete(`/todos/${new ObjectID().toHexString()}`)
-      .expect(404)
+      .post(`/users`)
+      .send( {email, password} )
+      .expect(400)
       .end(done);
   });
 
-  it('should return 404 for non-object IDs', (done) => {
+  it('should not create user if email already in use', (done) => {
+
+    var email = users[0].email;
+    var password = 'notadoctor';
 
     request(app)
-      .delete(`/todos/123`)
-      .expect(404)
+      .post(`/users`)
+      .send( {email, password} )
+      .expect(400)
       .end(done);
   });
 
