@@ -5,22 +5,6 @@ const { Todo }     = require('../../Models/Todo');
 const { User }     = require('../../Models/User');
 
 
-const todos = [ {
-    _id:  new ObjectID(),
-    text: 'Kill a hobo.',
-  }, {
-    _id:  new ObjectID(),
-    text: 'Second test todo.',
-    completed: true,
-    completedAt: 123
-  }, {
-    text: 'Third test todo.',
-  }, {
-    text: 'Wait, wut?!?',
-  }, {
-    text: 'I\'m just here for the cheese.',
-  }];
-
 var user1Id = new ObjectID();
 var user2Id = new ObjectID();
 
@@ -38,6 +22,27 @@ const users = [ {
     password: 'user2pass'
   }];
 
+const todos = [ {
+    _id:  new ObjectID(),
+    text: 'Kill a hobo.',
+    _creator: user1Id
+  }, {
+    _id:  new ObjectID(),
+    text: 'Second test todo.',
+    completed: true,
+    completedAt: 123,
+    _creator: user1Id
+  }, {
+    text: 'Third test todo.',
+    _creator: user1Id
+  }, {
+    text: 'Wait, wut?!?',
+    _creator: user1Id
+  }, {
+    _id:  new ObjectID(),
+    text: 'I\'m just here for the cheese.',
+    _creator: user2Id
+  }];
 
 const populateTodos = (done) => {
     Todo.remove({}).then(() => {

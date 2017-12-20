@@ -116,7 +116,8 @@ app.post('/todos', authenticate, (req, resp) => {
 
   // Create the new TODO
   var todo = new Todo({
-    text: req.body.text
+    text: req.body.text,
+    _creator: req.user._id
   });
 
   // ... and save to the database and respond
@@ -135,7 +136,7 @@ app.post('/todos', authenticate, (req, resp) => {
 app.get('/todos', authenticate, (req, resp) => {
 
   // Make the db request and respond
-  Todo.find().then((todos) => {
+  Todo.find({ _creator: req.user._id }).then((todos) => {
     resp.send( { todos });
   }, (err) => {
     resp.status(400).send(err);
@@ -156,7 +157,7 @@ app.get('/todos/:id', authenticate, (req, resp) => {
   }
 
   // Make the db request and respond
-  Todo.findById(id).then((todo) => {
+  Todo.findOne({ _id: id, _creator: req.user._id }).then((todo) => {
     if (todo) {
       // Todo doc was found
       resp.send({ todo });
@@ -185,7 +186,7 @@ app.delete('/todos/:id', authenticate, (req, resp) => {
   }
 
   // Make the db request and respond
-  Todo.findByIdAndRemove(id).then((todo) => {
+  Todo.findOneAndRemove({ _id: id, _creator: req.user.id }).then((todo) => {
     if (todo) {
       // Todo doc was found
       resp.send({ todo });
@@ -226,7 +227,9 @@ app.patch('/todos/:id', authenticate, (req, resp) => {
   }
 
   // Make the db request and respond
-  Todo.findByIdAndUpdate(id, { $set: body }, { new: true }).then((todo) => {
+  Todo.findOneAndUpdate({ _id: id, _creator: req.user._id },
+                        { $set: body },
+                        { new: true }).then((todo) => {
     if (todo) {
       // Todo doc was found
       resp.send({ todo });
